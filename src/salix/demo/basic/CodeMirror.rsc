@@ -46,9 +46,5 @@ void view(Model model) {
       codeMirror("cm", style(("height": "auto")), onChange(myChange), 
         mode("javascript"), lineNumbers(true), \value(model.src));
     });
-    for (Msg m <- model.changes) {
-      text(m);
-      text("; ");
-    }
   });
 }
