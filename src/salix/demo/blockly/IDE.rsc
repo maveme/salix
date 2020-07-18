@@ -19,6 +19,7 @@ import salix::lib::Mode;
 import salix::lib::REPL;
 import salix::lib::Charts;
 import salix::lib::UML;
+import salix::lib::Blockly;
 import salix::lib::Dagre;
 import util::Maybe;
 import ParseTree;
@@ -33,7 +34,7 @@ SalixApp[IDEModel] ideApp(str id = "ideDemo") = makeApp(id, ideInit, ideView, id
 App[IDEModel] ideWebApp() 
   = webApp(
       ideApp(),
-      index = |project://salix/src/salix/demo/ide/index.html|, 
+      index = |project://salix/src/salix/demo/blockly/index.html|, 
       static = |project://salix/src|
     ); 
 
@@ -300,28 +301,20 @@ void ideView(IDEModel model) {
     });
     
     div(class("row"), () {
-      div(class("col-md-3"), () {
+      div(class("col-md-6"), () {
         h4("Edit");
-        codeMirrorWithMode("myCodeMirror", model.mode, onChange(stmChange), height(400), 
-            mode("statemachine"), indentWithTabs(false), lineNumbers(true), \value(model.src));
+        blockly("myBlockly");
       });
         
       div(class("col-md-3"), () {
         h4("Raw");
       	text(model.src);
       });
-
-      div(class("col-md-3"), () {
-        h4("Edit.");
-        codeMirrorWithMode("myCodeMirror2", model.mode, onChange(stmChange), height(400), 
-            mode("statemachine"), indentWithTabs(false), lineNumbers(true), \value(model.src));
-      });
-
       
       div(class("col-md-3"), () {
         h4("Command line");
         repl(replMsg, model.repl, model.repl.id, cursorBlink(true), cols(30), rows(10));
-	 });
+	  });
    });
   });
 }

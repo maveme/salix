@@ -22,9 +22,14 @@
 <script src="/salix/lib/codemirror.js"></script>
 <script src="/salix/lib/javascript.js"></script>
 <script src="/salix/lib/simple.js"></script>
+<script src="/salix/lib/blockly_compressed.js"></script>
+<script src="/salix/lib/blockly_messages_en.js"></script>
+<script src="/salix/lib/blocks_compressed.js"></script>
 <script src="/salix/lib/salix-cm.js"></script>
 <script src="/salix/lib/salix-dagre.js"></script>
 <script src="/salix/lib/salix-xterm.js"></script>
+<script src="/salix/lib/salix-blockly.js"></script>
+
 
 <script>
   var salix = new Salix("ideDemo");
@@ -36,6 +41,7 @@
      registerCodeMirror(salix);
      
      registerXTerm(salix);
+     registerBlockly(salix);
      $(document).ready(salix.start);  
   });
 </script>
