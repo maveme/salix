@@ -1,15 +1,23 @@
 function registerBlockly(salix) {
 	
 	var workspaces = {};
+
+	salix.Decoders.blocklyChange = function (args) {
+		return function (event) {
+			if(event.type != "ui"){
+				var workspace = Blockly.Workspace.getById(event.workspaceId);
+				var code = Blockly.JavaScript.workspaceToCode(workspace);
+				return {type: "blocklyChange",
+						msg: code
+				};
+			};
+			return;
+		};
+	};
+
 	
 	// Salix
 	function myBlockly(attach, id, attrs, props, events, extra){
-
-        // Need to get this out of props or extra. maybe attrs?
-		var toolbox = '<xml>';
-		toolbox += '  <block type="controls_if"></block>';
-        toolbox += '  <block type="controls_whileUntil"></block>';
-        toolbox += '</xml>';
 		
 		// Salix
 		var div = document.createElement('div');
@@ -18,11 +26,33 @@ function registerBlockly(salix) {
 		attach(div);
 
         // Create Blockly		
-		var workspace = Blockly.inject('blocklyDiv', {toolbox: toolbox});
+		var workspace = Blockly.inject('blocklyDiv', {toolbox: document.getElementById('toolbox')});
 		workspaces[id] = workspace;
 		
 		// Salix
 		var myHandlers = {};
+		
+		for (var key in props){
+			if(props.hasOwnProperty(key)){
+				var val = props[key];
+				
+				switch(key){
+					case 'toolbox':
+						console.log(val);
+						break;
+					default:
+					    break;
+				}
+			}
+		}
+		
+		for (var key in events) {
+			if (events.hasOwnProperty(key)) {
+				var handler = salix.getNativeHandler(events[key]);
+				myHandlers[key] = handler;
+				workspace.addChangeListener(handler);
+			}	
+		}
 
         // Salix
         function patch(edits, attach){

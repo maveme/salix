@@ -20,6 +20,7 @@ import salix::lib::REPL;
 import salix::lib::Charts;
 import salix::lib::UML;
 import salix::lib::Blockly;
+import salix::lib::BlocklyXML;
 import salix::lib::Dagre;
 import util::Maybe;
 import ParseTree;
@@ -130,22 +131,11 @@ Maybe[str] stmHighlight(str x) {
 }
 
 // The doors state machine.
-str doors() = 
-    "events
-    '  open OPEN
-    '  close CLOSE
-    'end
-    '
-    'state closed
-    '  open =\> opened
-    'end
-    '
-    'state opened
-    '  close =\> closed
-    'end";
+str doors() = "Start using blockly and your code will be generated here!";
 
 data Msg
   = stmChange(int fromLine, int fromCol, int toLine, int toCol, str text, str removed)
+  | blocklyChange(str text)
   | fireEvent(str name)
   | gotoState(str name)
   | replMsg(Msg msg)
@@ -216,6 +206,11 @@ IDEModel ideUpdate(Msg msg, IDEModel model) {
           model.currentState = initialState(ctl);
         }
       }  
+    }
+    
+    // update from blockly
+    case blocklyChange(str text): {
+      model.src = text;
     }
     
     // If the message is a goto state. 
@@ -301,17 +296,48 @@ void ideView(IDEModel model) {
     });
     
     div(class("row"), () {
-      div(class("col-md-6"), () {
+      div(class("col-md-8"), () {
         h4("Edit");
-        blockly("myBlockly");
+        xml(id("toolbox"), style(<"display", "none">), () {
+          category(name("Control"), () {
+			  block(\type("controls_if"), (){});
+			  block(\type("controls_whileUntil"), (){});
+			  block(\type("controls_for"), (){});
+          });
+          category(name("Logic"), () {
+			  block(\type("logic_compare"), (){});
+			  block(\type("logic_operation"), (){});
+			  block(\type("logic_boolean"), (){});
+          });
+          category(name("Math"), () {
+			  block(\type("math_number"), (){});
+			  block(\type("math_arithmetic"), (){
+			  	field(name("OP"), (){ text("ADD"); });
+			  	blocklyValue(name("A"), (){
+			  	  shadow(\type("math_number"), () {
+			  	    field(name("NUM"), () { text("1"); });
+			  	  });
+			  	});
+			  	blocklyValue(name("B"), (){
+			  	  shadow(\type("math_number"), () {
+			  	    field(name("NUM"), () { text("1"); });
+			  	  });
+			  	});
+			  });
+          });
+          
+        });
+        blockly("myBlockly", onChange(blocklyChange));
       });
         
-      div(class("col-md-3"), () {
-        h4("Raw");
-      	text(model.src);
+      div(class("col-md-4"), () {
+        h4("JavaScript");
+      	pre(class("prettyprint"), model.src);
       });
-      
-      div(class("col-md-3"), () {
+    });
+    
+    div(class("row"), () {
+      div(class("col-md-12"), () {
         h4("Command line");
         repl(replMsg, model.repl, model.repl.id, cursorBlink(true), cols(30), rows(10));
 	  });
