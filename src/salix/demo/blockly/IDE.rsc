@@ -328,7 +328,34 @@ void ideView(IDEModel model) {
       div(class("col-md-8"), () {
         h4("Edit");
 
-        blockly("myBlockly", onChange(blocklyChange), toolbox(toolboxXML));
+        blockly("myBlockly", onChange(blocklyChange), toolbox(xmlPretty(toolbox([
+					category("Control", [
+						block("controls_if"),
+						block("controls_whileUntil"),
+						block("controls_for")
+					]),
+					category("Logic", [
+						block("logic_compare"),
+						block("logic_operation"),
+						block("logic_boolean")
+					]),
+					category("Math", [
+						block("math_number"),
+						block("math_arithmetic", [
+							field("OP", "add"),
+							\value("A", [
+								shadow("math_number", [
+									field("NUM", 1)
+								])
+							]),
+							\value("B", [
+								shadow("math_number", [
+									field("NUM", 1)
+								])
+							])
+						])
+					])	
+				]))));
       });
         
       div(class("col-md-4"), () {
