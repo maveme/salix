@@ -9,12 +9,6 @@ Attr onChange(Msg(str) msg) = event("change", handler("blocklyChange", encode(ms
 Msg parseMsg(str id, "blocklyChange", Handle h, map[str, str] p) 
  = applyMaps(id, h, decode(id, h.id, #Msg(str))(p["msg"]));
 
-void blockly(str id, value vals...)
-  = build(vals, Node(list[Node] _, list[Attr] attrs){
-      return native("blockly", id, attrsOf(attrs), propsOf(attrs), eventsOf(attrs));
-  });
-  
-  
 Attr toolbox(str toolbox) = prop("toolbox", "<toolbox>");
 
 Attr resizable(bool val) = prop("resizable", "<val>");
@@ -43,3 +37,35 @@ Attr trashcan(bool val) = prop("trashcan", "<val>");
 Attr maxTrashcanContents(int val) = prop("maxTrashcanContents", "<val>");
 //Attr zoom(Object obj) = prop("zoom", "<obj>");
 Attr renderer(str val) = prop("renderer", "<val>");
+
+data _Toolbox
+	= toolbox(list[_Element] elements = []);
+
+data _Element
+	= block(str \type)
+	| section(str category, list[_Element] elements = []);
+
+alias Toolbox = void(list[value] sections);
+alias Section = void(str category, list[value] blocks);
+alias Block = void(str \type);
+
+void blockly(str id, value vals...){
+	_Toolbox tbox = toolbox();
+	
+	_Element top() = tbox.elements[-1];
+	
+	void push(_Element e) {
+		tbox.elements += e;
+	}
+	
+	_Element pop() {
+		_Element e = top();
+		tbox.elements = tbox.elements[0..-1];
+		return e;
+	}
+	
+  	build(vals, Node(list[Node] _, list[Attr] attrs){
+    	return native("blockly", id, attrsOf(attrs), propsOf(attrs), eventsOf(attrs));
+  	});
+}  
+  
