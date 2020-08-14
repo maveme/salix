@@ -44,41 +44,58 @@ Attr renderer(str val) = prop("renderer", "<val>");
 
 // definition
 
+// Definition for the internal Toolbox/Workspace/Block representation (the omnibox).
 private data _Element
 	= _toolbox(list[_Element] elements = [])
-	| _category(str name, str color = "", str custom = "", str style = "", bool expanded = false, list[_Element] elements = [])
+	| _category(str name, str color = "", str custom = "", str style = "", str expanded = false, list[_Element] elements = [])
 	| _separator(str gap = "")
-	| _block(str name, str \type = "", bool disabled = false, list[_Element] elements = [])
-	| _shadow(str name, str \type = "", bool disabled = false, list[_Element] elements = [])
+	| _block(str name, str \type = "", str disabled = false, list[_Element] elements = [])
+	| _shadow(str name, str \type = "", str disabled = false, list[_Element] elements = [])
 	| _value(str name, list[_Element] elements = [])
 	| _field(str name, str \value, str id = "", str \type = "")
 	| _button(str text, str callbackKey, str class = "")
 	| _label(str text, str class = "");
 	
+// Attributes for the configuration of the internal omnibox.
 Attr \type(str val) = attr("type", val);
-Attr disabled(bool val) = attr("disabled", "<val>");
-Attr expanded(bool val) = attr("expanded", "<val>");
-Attr color(int val) = attr("color", "<val>");
+Attr disabled(bool val) = attr("disabled", "<( val ? val : "")>");
+Attr expanded(bool val) = attr("expanded", "<(!val ? val : "")>");
+Attr colour(int val) = attr("colour", "<((val >= 0 && val <= 360) ? val : "")>");
 Attr custom(str val) = attr("custom", val);
-Attr style(str val) = attr("style", val);
-Attr gap(int val) = attr("gap", "<val>");
-Attr id(str val) = attr("gap", val);
-Attr class(str val) = attr("class", val);
+Attr categoryStyle(str val) = attr("categorystyle", val);
+Attr gap(int val) = attr("gap", "<((val >= 0 && val <= 360) ? val : "")>");
+Attr id(str val) = attr("id", val);
+Attr webClass(str val) = attr("web-class", val);
 Attr callbackKey(str val) = attr("callbackKey", val);
 
 // compile
 
+list[Node] attr2xml(str name, str val) = ( val == "" ? [] : [attribute(name, val)]);
+
+// Conversion of an Omnibox element to an XML element for the toolbox.
 Node element2xml(_Element elmnt) {
-	println(elmnt);
+	str name = "None";
+	list[Node] attrs = [];
 	switch(elmnt) {
+		case _category(str category): {
+			name = "category";
+			attrs += attr2xml("name", category);
+			attrs += attr2xml("colour", elmnt.color);
+			attrs += attr2xml("custom", elmnt.custom);
+			attrs += attr2xml("categoryStyle", elmnt.style);
+			attrs += attr2xml("expanded", elmnt.expanded);
+			attrs += [element2xml(e) | e <-elmnt.elements];
+		}
 		case _block(str name):
-			return element("block", [attribute("type", elmnt.\type)] + [element2xml(e) | e <-elmnt.elements]);	
-		case _category(str category):
-			return element("category", [attribute("name", category)] + [element2xml(e) | e <- elmnt.elements]);	
+			return element("block", [attribute("type", elmnt.\type)] + [element2xml(e) | e <-elmnt.elements]);
+		default:
+			return comment("None");
 	}
-	return comment("None");
+	
+	return element(name, attrs);	
 }
 
+// Conversion of an Omnibox to an XML DOM for the toolbox.
 Node toolbox2xml(_Element tbox) =
 	document(element("xml",[element2xml(e) | e <- tbox.elements]));
 
@@ -86,20 +103,25 @@ Node toolbox2xml(_Element tbox) =
 
 // construct
 
+// The stack of the omnibox.
 private list[_Element] stack = [_toolbox()];
 
+// The top of the stack.
 private _Element top() = stack[-1];
 
+// push to the stack.
 private void push(_Element e) {
 	stack += [e];
 }
-	
+
+// pop off the stack.
 private _Element pop() {
 	_Element e = top();
 	stack = stack[0..-1];
 	return e;
 }
 
+// Add all the children in the sub-closure (if there is one).
 private _Element addChildren(_Element cur, list[value] vals){
 	if(vals != [], void () blk := vals[-1]){
 		push(cur);
@@ -110,27 +132,30 @@ private _Element addChildren(_Element cur, list[value] vals){
 	return cur;
 }
 
+// Add the element to it's parent. 
 private void addToParent(_Element element) {
 	stack = stack[0..-1] + stack [-1][elements = stack[-1].elements + [element]];	
 }
 
+// the closure for a category.
 void category(str name, value vals...){
 	_Element cur = addChildren(_category(name), vals);
 	
-	for( <atr, val> <- [<k,v> | attr(str k, str v) <- vals]){
+	for( <str atr, str val> <- [<k,v> | attr(str k, str v) <- vals]){
 		switch(atr){
 			case "color": cur.color = val;
 			case "custom": cur.custom = val;
 			case "style": cur.style = val;
-			case "expanded": cur.expanded = val == "true";
+			case "expanded": cur.expanded = val;
 		}
 	}	
 	addToParent(cur);	
 }
 
+// the closure for a separator.
 void separator(value vals...){
 	_Element cur = _separator();
-	for( <atr, val> <- [<k,v> | attr(str k, str v) <- vals]){
+	for( <str atr, str val> <- [<k,v> | attr(str k, str v) <- vals]){
 		switch(atr){
 			case "gap": cur.gap = val;
 		}
@@ -138,38 +163,41 @@ void separator(value vals...){
 	addToParent(cur);
 }
 
+// the closure for a block.
 void block(str name, value vals...){
 	_Element cur = addChildren(_block(name), vals);
 	println("attrs: <attrsOf([a | Attr a <- vals])>");	
-	for( <atr, val> <- [<k,v> | attr(str k, str v) <- vals]){
+	for( <str atr, str val> <- [<k,v> | attr(str k, str v) <- vals]){
 		switch(atr){
 			case "type": cur.\type = val;
-			case "disabled": cur.disabled = val == "true";
+			case "disabled": cur.disabled = val;
 		}
 	}
 	addToParent(cur);
 }
 
-
+// the closure for a shadow block.
 void shadow(str name, value vals...){
 	_Element cur = addChildren(_shadow(name), vals);
-	for( <atr, val> <- [<k,v> | attr(str k, str v) <- vals]){
+	for( <str atr, str val> <- [<k,v> | attr(str k, str v) <- vals]){
 		switch(atr){
 			case "type": cur.\type = val;
-			case "disabled": cur.disabled = val == "true";
+			case "disabled": cur.disabled = val;
 		}
 	}
 	addToParent(cur);
 }
 
+// the closure for a value.
 void \value(str name, value vals...){
 	_Element cur = addChildren(_value(name), vals);
 	addToParent(cur);
 }
 
+// the closure for a field.
 void field(str name, value val, value vals...){
 	_Element cur = _field(name, val);
-	for( <atr, val> <- [<k,v> | attr(str k, str v) <- vals]){
+	for( <str atr, str val> <- [<k,v> | attr(str k, str v) <- vals]){
 		switch(atr){
 			case "id": cur.id = val;
 			case "type": cur.\type = val;
@@ -178,9 +206,10 @@ void field(str name, value val, value vals...){
 	addToParent(cur);
 }
 
+// the closure for a button.
 void button(str text, str callbackKey, value vals...){
 	_Element cur = _button(text, callbackKey);
-	for( <atr, val> <- [<k,v> | attr(str k, str v) <- vals]){
+	for( <str atr, str val> <- [<k,v> | attr(str k, str v) <- vals]){
 		switch(atr){
 			case "class": cur.class = val;
 		}
@@ -188,9 +217,10 @@ void button(str text, str callbackKey, value vals...){
 	addToParent(cur);
 }
 
+// the closure for a label.
 void label(str text, value vals...){
 	_Element cur = _label(text);
-	for( <atr, val> <- [<k,v> | attr(str k, str v) <- vals]){
+	for( <str atr, str val> <- [<k,v> | attr(str k, str v) <- vals]){
 		switch(atr){
 			case "class": cur.class = val;
 		}
@@ -199,7 +229,8 @@ void label(str text, value vals...){
 }
 
 void blockly(str id, value vals...){
-	
+
+	// if a omnibox is supplied as a closure, construct the omnibox using black magic.	
 	if( vals != [], void() T := vals[-1]) {
 		stack = [_toolbox()];
 		T();

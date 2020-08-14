@@ -76,7 +76,7 @@ void view(Model model) {
         blockly("myBlockly", onChange(Msg::blocklyChange), () {
         	category("Control", () {
         		block("if", \type("controls_if"), () {});
-        		block("while", \type("controls_whileUntil"), disabled(true), () {});
+        		block("whileUntil", \type("controls_whileUntil"), disabled(true), () {});
         	});
         });
       });
