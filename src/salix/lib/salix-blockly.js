@@ -30,13 +30,16 @@ function registerBlockly(salix) {
 			toolbox: '<xml><block type="controls_if"></block></xml>'
 		};
 
+		if(extra.toolbox != null) {
+			options.toolbox = extra.toolbox;
+		}
+		
 		for (var key in props){
 			if(props.hasOwnProperty(key)){
 				var val = props[key];
 				
 				switch(key){
 					case 'toolbox':
-						console.log(val);
 						options.toolbox = val;
 						break;
 					case 'resizable':
@@ -119,6 +122,8 @@ function registerBlockly(salix) {
 				}
 			}
 		}
+
+		console.log(options.toolbox);
 
 		var div = document.createElement('div');
 		div.setAttribute("id", "blocklyDiv");

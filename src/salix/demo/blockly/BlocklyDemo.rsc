@@ -10,19 +10,16 @@ module salix::demo::blockly::BlocklyDemo
 
 import salix::App;
 import salix::HTML;
-import salix::Node;
 import salix::Core;
-import salix::lib::Blockly;
-import salix::lib::BlocklyToolbox;
 import lang::xml::DOM;
-import String;
-import List;
+import salix::lib::Blockly;
+import IO;
 
 // inits the app
-SalixApp[BlocklyModel] blocklyApp(str id = "blocklyDemo") = makeApp(id, blocklyInit, blocklyView, blocklyUpdate);
+SalixApp[Model] blocklyApp(str id = "blocklyDemo") = makeApp(id, init, view, update, parser = parseMsg);
 
 // inits the app
-App[BlocklyModel] blocklyWebApp() 
+App[Model] blocklyWebApp() 
   = webApp(
       blocklyApp(),
       index = |project://salix/src/salix/demo/blockly/index.html|, 
@@ -30,13 +27,13 @@ App[BlocklyModel] blocklyWebApp()
     ); 
 
 // the model for the IDE.
-alias BlocklyModel = tuple[
+alias Model = tuple[
   str src 
 ];
   
 // init the IDE  
-BlocklyModel blocklyInit() {
-  BlocklyModel model = <"">;
+Model init() {
+  Model model = <"">;
   
   // init the model with the doors state machine.
   model.src = workspace();
@@ -47,40 +44,12 @@ BlocklyModel blocklyInit() {
 // The doors state machine.
 str workspace() = "Start using blockly and your code will be generated here!";
 
-str toolboxXML = xmlPretty(toolbox([
-					category("Control", [
-						block("controls_if"),
-						block("controls_whileUntil"),
-						block("controls_for")
-					]),
-					category("Logic", [
-						block("logic_compare"),
-						block("logic_operation"),
-						block("logic_boolean")
-					]),
-					category("Math", [
-						block("math_number"),
-						block("math_arithmetic", [
-							field("OP", "add"),
-							\value("A", [
-								shadow("math_number", [
-									field("NUM", 1)
-								])
-							]),
-							\value("B", [
-								shadow("math_number", [
-									field("NUM", 1)
-								])
-							])
-						])
-					])	
-				]));
 
 data Msg
   = blocklyChange(str text);
 
 // update the model with from the msg.
-BlocklyModel blocklyUpdate(Msg msg, BlocklyModel model) {
+Model update(Msg msg, Model model) {
 
   switch (msg) {
     // update from blockly
@@ -92,7 +61,7 @@ BlocklyModel blocklyUpdate(Msg msg, BlocklyModel model) {
 }
 
 // render the IDE.
-void blocklyView(BlocklyModel model) {
+void view(Model model) {
   div(() {
     div(class("row"), () {
       div(class("col-md-12"), () {
@@ -104,34 +73,12 @@ void blocklyView(BlocklyModel model) {
       div(class("col-md-8"), () {
         h4("Edit");
 
-        blockly("myBlockly", onChange(Msg::blocklyChange), toolbox(xmlPretty(toolbox([
-					category("Control", [
-						block("controls_if"),
-						block("controls_whileUntil"),
-						block("controls_for")
-					]),
-					category("Logic", [
-						block("logic_compare"),
-						block("logic_operation"),
-						block("logic_boolean")
-					]),
-					category("Math", [
-						block("math_number"),
-						block("math_arithmetic", [
-							field("OP", "add"),
-							\value("A", [
-								shadow("math_number", [
-									field("NUM", 1)
-								])
-							]),
-							\value("B", [
-								shadow("math_number", [
-									field("NUM", 1)
-								])
-							])
-						])
-					])	
-				]))));
+        blockly("myBlockly", onChange(Msg::blocklyChange), () {
+        	category("Control", () {
+        		block("if", \type("controls_if"), () {});
+        		block("while", \type("controls_whileUntil"), disabled(true), () {});
+        	});
+        });
       });
         
       div(class("col-md-4"), () {
