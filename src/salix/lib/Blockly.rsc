@@ -72,6 +72,28 @@ Attr callbackKey(str val) = attr("callbackKey", val);
 
 list[Node] attr2xml(str name, str val) = ( val == "" ? [] : [attribute(name, val)]);
 
+
+
+
+
+
+
+
+
+
+
+//////// MAPS WILL WORK. USE INTERSECTION TO CHERRY PICK THE ATTRIBUTES YOU WANT.
+
+
+
+
+
+
+
+
+
+
+
 // Conversion of an Omnibox element to an XML element for the toolbox.
 Node element2xml(_Element elmnt) {
 	str name = "None";
