@@ -72,7 +72,6 @@ void view(Model model) {
     div(class("row"), () {
       div(class("col-md-8"), () {
         h4("Edit");
-
         blockly("myBlockly", onChange(Msg::blocklyChange), () {
         	category("Control", () {
         		block("if", \type("controls_if"), () {});
