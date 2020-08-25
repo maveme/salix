@@ -60,6 +60,8 @@ Model update(Msg msg, Model model) {
   return model;
 }
 
+bool enableWhileLoop = true;
+
 // render the IDE.
 void view(Model model) {
   div(() {
@@ -74,8 +76,12 @@ void view(Model model) {
         h4("Edit");
         blockly("myBlockly", onChange(Msg::blocklyChange), () {
         	category("Control", () {
-        		block("if", \type("controls_if"), () {});
-        		block("whileUntil", \type("controls_whileUntil"), disabled(true), () {});
+        		block("if", \type("controls_if"));
+        		if(enableWhileLoop){
+					block("whileUntil", \type("controls_whileUntil"), disabled(true), () {
+						message("bob");	
+					});
+				};
         	});
         });
       });

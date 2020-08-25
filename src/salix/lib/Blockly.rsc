@@ -49,12 +49,13 @@ private data _Element
 	= _toolbox(list[_Element] elements = [])
 	| _category(map[str, str] attrs, list[_Element] elements = [])
 	| _separator(map[str, str] attrs)
-	| _block(map[str,str] attrs , list[_Element] elements = [])
-	| _shadow(map[str,str] attrs, list[_Element] elements = [])
+	| _block(map[str,str] attrs , list[_Element] messages = [], list[_Element] elements = [])
+	| _shadow(map[str,str] attrs, list[_Element] messages = [], list[_Element] elements = [])
 	| _value(map[str,str] attrs, list[_Element] elements = [])
 	| _field(map[str,str] attrs)
 	| _button(map[str,str] attrs)
-	| _label(map[str,str] attrs);
+	| _label(map[str,str] attrs)
+	| _message(str msg);
 	
 // Attributes for the configuration of the internal omnibox.
 Attr \type(str val) = attr("type", val);
@@ -88,7 +89,7 @@ Node element2xml(_Element elmnt) {
 		case _category(map[str, str] attrs):
 			return element("category", attrs2xml(["name", "colour", "custom", "categoryStyle", "expanded"], attrs) + [element2xml(e) | e <-elmnt.elements]);
 		case _separator(map[str, str] attrs):
-			return element("sep", attrs2xml(["gap"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return element("sep", attrs2xml(["gap"], attrs));
 		case _block(map[str, str] attrs):
 			return element("block", attrs2xml(["name", "type", "colour", "disabled"], attrs) + [element2xml(e) | e <-elmnt.elements]);
 		case _shadow(map[str, str] attrs):
@@ -96,11 +97,11 @@ Node element2xml(_Element elmnt) {
 		case _value(map[str, str] attrs):
 			return element("value", attrs2xml(["name"], attrs) + [element2xml(e) | e <-elmnt.elements]);
 		case _field(map[str, str] attrs):
-			return element("field", attrs2xml(["name", "value", "id", "type"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return element("field", attrs2xml(["name", "value", "id", "type"], attrs));
 		case _button(map[str, str] attrs):
-			return element("button", attrs2xml(["name", "callbackKey", "web-class"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return element("button", attrs2xml(["name", "callbackKey", "web-class"], attrs));
 		case _label(map[str, str] attrs):
-			return element("label", attrs2xml(["name", "web-class"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return element("label", attrs2xml(["name", "web-class"], attrs));
 		default:
 			return comment("None");
 	}
@@ -145,7 +146,11 @@ private _Element addChildren(_Element cur, list[value] vals){
 
 // Add the element to it's parent. 
 private void addToParent(_Element element) {
-	stack = stack[0..-1] + stack [-1][elements = stack[-1].elements + [element]];	
+	if(_message(_) := element){
+		stack = stack[0..-1] + stack [-1][elements = stack[-1].messages + [element]];	
+	} else {
+		stack = stack[0..-1] + stack [-1][elements = stack[-1].elements + [element]];	
+	}
 }
 
 private map[str,str] getAttrs(list[value] vals) = (k: v | attr(str k, str v) <- vals);
@@ -158,16 +163,11 @@ void category(str name, value vals...){
 }
 
 // the closure for a separator.
-void separator(value vals...){
-	_Element cur = _separator(getAttrs(vals));
-	cur.attrs = getAttrs(vals);
-	addToParent(cur);
-}
+void separator(value vals...) = addToParent(_separator(getAttrs(vals)));
 
 // the closure for a block.
 void block(str name, value vals...){
 	_Element cur = addChildren(_block(getAttrs(vals)), vals);
-	cur.attrs = getAttrs(vals);
 	cur.attrs["name"] = name;
 	addToParent(cur);
 }
@@ -175,16 +175,14 @@ void block(str name, value vals...){
 // the closure for a shadow block.
 void shadow(str name, value vals...){
 	_Element cur = addChildren(_shadow(getAttrs(vals)), vals);
-	cur.attrs = getAttrs(vals);
 	cur.attrs["name"] = name;
 	addToParent(cur);
 }
 
+void message(str msg) = addToParent(_message(msg));
+
 // the closure for a value.
-void \value(str name, value vals...){
-	_Element cur = addChildren(_value(("name": name)), vals);
-	addToParent(cur);
-}
+void \value(str name, value vals...) = addToParent(addChildren(_value(("name": name)), vals));
 
 // the closure for a field.
 void field(str name, value val, value vals...){
