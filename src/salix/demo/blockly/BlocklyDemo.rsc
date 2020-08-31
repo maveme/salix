@@ -60,8 +60,6 @@ Model update(Msg msg, Model model) {
   return model;
 }
 
-bool enableWhileLoop = true;
-
 // render the IDE.
 void view(Model model) {
   div(() {
@@ -76,12 +74,47 @@ void view(Model model) {
         h4("Edit");
         blockly("myBlockly", onChange(Msg::blocklyChange), () {
         	category("Control", () {
-        		block("if", \type("controls_if"));
-        		if(enableWhileLoop){
-					block("whileUntil", \type("controls_whileUntil"), disabled(true), () {
-						message("bob");	
-					});
-				};
+        		block(
+        			"if", 
+        			\type("controls_if"),
+        			hue(100), 
+        			nextStatement(""),
+        			previousStatement(""),
+					() {
+						message("if %1 then", () {
+							argument("CONDITION", "input_value");
+						});
+						message("%1", () {
+							argument("THEN", "input_statement");
+        				});
+        			}
+        		);
+        		block(
+        			"switch",
+        			\type("controls_switch"),
+        			hue(170),
+        			nextStatement(""),
+        			previousStatement(""),
+        			() {
+        				message("switch over %1 %2", () {
+        					argument("VALUE", "input_value");
+        					argument("SWITCH", "input_statement", check(["Switch"]));
+        				});
+        			}
+        		);
+        		block(
+        			"case",
+        			\type("controls_case"),
+        			hue(170),
+        			nextStatement("Switch"),
+        			previousStatement("Switch"),
+        			() {
+        				message("case %1: %2", () {
+        					argument("VALUE", "input_value");
+        					argument("SWITCH", "input_statement");
+        				});
+        			}
+        		);
         	});
         });
       });

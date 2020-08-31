@@ -34,14 +34,13 @@ function registerBlockly(salix) {
 			options.toolbox = extra.toolbox;
 		}
 		
+		console.log(extra.blocks);
+		
 		for (var key in props){
 			if(props.hasOwnProperty(key)){
 				var val = props[key];
 				
 				switch(key){
-					case 'toolbox':
-						options.toolbox = val;
-						break;
 					case 'resizable':
 					 	resizable = val;
 						break;
@@ -137,7 +136,7 @@ function registerBlockly(salix) {
         // Create Blockly		
 		var workspace = Blockly.inject('blocklyDiv', options);
 		workspaces[id] = workspace;
-		
+		Blockly.defineBlocksWithJsonArray(extra.blocks);
 		// Salix
 		var myHandlers = {};		
 		

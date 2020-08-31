@@ -4,14 +4,15 @@ import salix::Node;
 import lang::xml::DOM;
 import salix::Core;
 import IO;
+import Map;
+import List;
+import String;
 
 
 Attr onChange(Msg(str) msg) = event("change", handler("blocklyChange", encode(msg)));
 
 Msg parseMsg(str id, "blocklyChange", Handle h, map[str, str] p) 
  = applyMaps(id, h, decode(id, h.id, #Msg(str))(p["msg"]));
-
-Attr toolbox(str toolbox) = prop("toolbox", "<toolbox>");
 
 Attr resizable(bool val) = prop("resizable", "<val>");
 Attr width(str val) = prop("width", "<val>");
@@ -46,6 +47,7 @@ Attr renderer(str val) = prop("renderer", "<val>");
 
 // Definition for the internal Toolbox/Workspace/Block representation (the omnibox).
 private data _Element
+	// TOOLBOX
 	= _toolbox(list[_Element] elements = [])
 	| _category(map[str, str] attrs, list[_Element] elements = [])
 	| _separator(map[str, str] attrs)
@@ -55,8 +57,14 @@ private data _Element
 	| _field(map[str,str] attrs)
 	| _button(map[str,str] attrs)
 	| _label(map[str,str] attrs)
-	| _message(str msg);
+	// BLOCK DEF
+	| _message(str msg, list[_Element] elements = []) // elements are arguments
+	| _argument(str \type, str name, map[str,value] params); // elements are special arguments for the field/value
 	
+data Param = param(str name, value val);
+
+Param check(list[str] val) = param("check", val);
+
 // Attributes for the configuration of the internal omnibox.
 Attr \type(str val) = attr("type", val);
 Attr disabled(bool val) = attr("disabled", "<( val ? val : "")>");
@@ -66,7 +74,11 @@ Attr custom(str val) = attr("custom", val);
 Attr categoryStyle(str val) = attr("categorystyle", val);
 Attr gap(int val) = attr("gap", "<((val >= 0 && val <= 360) ? val : "")>");
 Attr id(str val) = attr("id", val);
+Attr tooltip(str val) = attr("tooltip", val);
+Attr helpUrl(str val) = attr("helpUrl", val);
 Attr webClass(str val) = attr("web-class", val);
+Attr nextStatement(str val) = attr("nextStatement", val);
+Attr previousStatement(str val) = attr("previousStatement", val);
 
 // compile
 
@@ -84,33 +96,65 @@ list[Node] attrs2xml(list[str] keys, map[str, str] attrs) {
 } 
 
 // Conversion of an Omnibox element to an XML element for the toolbox.
-Node element2xml(_Element elmnt) {
+list[Node] element2xml(_Element elmnt) {
 	switch(elmnt) {
 		case _category(map[str, str] attrs):
-			return element("category", attrs2xml(["name", "colour", "custom", "categoryStyle", "expanded"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return [element("category", attrs2xml(["name", "colour", "custom", "categoryStyle", "expanded"], attrs) + [ w | [w] <- [element2xml(e) | e <-elmnt.elements]])];
 		case _separator(map[str, str] attrs):
-			return element("sep", attrs2xml(["gap"], attrs));
+			return [element("sep", attrs2xml(["gap"], attrs))];
 		case _block(map[str, str] attrs):
-			return element("block", attrs2xml(["name", "type", "colour", "disabled"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return [element("block", attrs2xml(["name", "type", "colour", "disabled"], attrs) + [ w | [w] <- [element2xml(e) | e <-elmnt.elements]])];
 		case _shadow(map[str, str] attrs):
-			return element("shadow", attrs2xml(["name", "type", "colour", "disabled"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return [element("shadow", attrs2xml(["name", "type", "colour", "disabled"], attrs) + [ w | [w] <- [element2xml(e) | e <-elmnt.elements]])];
 		case _value(map[str, str] attrs):
-			return element("value", attrs2xml(["name"], attrs) + [element2xml(e) | e <-elmnt.elements]);
+			return [element("value", attrs2xml(["name"], attrs) + [ w | [w] <- [element2xml(e) | e <-elmnt.elements]])];
 		case _field(map[str, str] attrs):
-			return element("field", attrs2xml(["name", "value", "id", "type"], attrs));
+			return [element("field", attrs2xml(["name", "value", "id", "type"], attrs))];
 		case _button(map[str, str] attrs):
-			return element("button", attrs2xml(["name", "callbackKey", "web-class"], attrs));
+			return [element("button", attrs2xml(["name", "callbackKey", "web-class"], attrs))];
 		case _label(map[str, str] attrs):
-			return element("label", attrs2xml(["name", "web-class"], attrs));
+			return [element("label", attrs2xml(["name", "web-class"], attrs))];
 		default:
-			return comment("None");
+			return [];
 	}
 }
 
 // Conversion of an Omnibox to an XML DOM for the toolbox.
 Node toolbox2xml(_Element tbox) =
-	document(element("xml",[element2xml(e) | e <- tbox.elements]));
+	document(element("xml", [w | [w] <- [element2xml(e) | e <- tbox.elements]]));
 
+map[str, value] attrs2json(list[str] keys, map[str, str] attrs) = (key:key | key <- keys) o attrs;
+
+list[map[str, value]] args2json(list[_Element] args) = [("type": arg.\type, "name": arg.name) + arg.params | arg <- args] ;
+
+map[str, value] block2json(_Element block) {
+	map[str, value] def = ();
+	int msgCount = 0;
+	
+	def += attrs2json(["type", "colour", "helpUrl", "tooltip", "nextStatement", "previousStatement"], block.attrs);
+	
+	for( msg <- block.messages) {
+		def += ("message<msgCount>": "<msg.msg>");
+		if(size(msg.elements) > 0){
+			def += ("args<msgCount>": args2json(msg.elements));
+		};
+		msgCount += 1;
+	};
+	return def;
+}
+
+list[map[str,value]] toolbox2json(_Element tbox) {
+	list[map[str, value]] blocks = [];
+	for(_Element e <- tbox.elements){
+		switch(e){
+			case _category(_):
+				blocks += toolbox2json(e);
+			case _block(_):
+				blocks += [block2json(e)];
+		}
+	};
+	return blocks;
+}	
 // --
 
 // construct
@@ -147,13 +191,14 @@ private _Element addChildren(_Element cur, list[value] vals){
 // Add the element to it's parent. 
 private void addToParent(_Element element) {
 	if(_message(_) := element){
-		stack = stack[0..-1] + stack [-1][elements = stack[-1].messages + [element]];	
+		stack = stack[0..-1] + stack [-1][messages = stack[-1].messages + [element]];	
 	} else {
 		stack = stack[0..-1] + stack [-1][elements = stack[-1].elements + [element]];	
 	}
 }
 
 private map[str,str] getAttrs(list[value] vals) = (k: v | attr(str k, str v) <- vals);
+private map[str,value] getParams(list[value] vals) = (k: v | param(str k, value v) <- vals);
 
 // the closure for a category.
 void category(str name, value vals...){
@@ -179,7 +224,9 @@ void shadow(str name, value vals...){
 	addToParent(cur);
 }
 
-void message(str msg) = addToParent(_message(msg));
+void message(str msg, value vals...) = addToParent(addChildren(_message(msg), vals));
+
+void argument(str name, str \type, value vals...) = addToParent(_argument(\type, name, getParams(vals)));
 
 // the closure for a value.
 void \value(str name, value vals...) = addToParent(addChildren(_value(("name": name)), vals));
@@ -207,8 +254,6 @@ void label(str text, value vals...){
 	addToParent(cur);
 }
 
-private void() oldT = (){};
-
 void blockly(str id, value vals...){
 
 	// if a omnibox is supplied as a closure, construct the omnibox using black magic.	
@@ -216,9 +261,10 @@ void blockly(str id, value vals...){
 		stack = [_toolbox()];
 		T();
 	}
-  	
+	
+	println(toolbox2json(stack[0]));
+	
   	build(vals[0..-1], Node(list[Node] _, list[Attr] attrs){
-    	return native("blockly", id, attrsOf(attrs), propsOf(attrs), eventsOf(attrs), extra = ("toolbox": xmlPretty(toolbox2xml(stack[0]))));
+    	return native("blockly", id, attrsOf(attrs), propsOf(attrs), eventsOf(attrs), extra = ("toolbox": xmlPretty(toolbox2xml(stack[0])), "blocks" : toolbox2json(stack[0])));
   	});
-}  
-  
+}
