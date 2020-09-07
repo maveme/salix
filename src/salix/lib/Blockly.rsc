@@ -59,13 +59,35 @@ private data _Element
 	| _label(map[str,str] attrs)
 	// BLOCK DEF
 	| _message(str msg, list[_Element] elements = []) // elements are arguments
-	| _argument(str \type, str name, map[str,value] params); // elements are special arguments for the field/value
+	| _argument(str \type, map[str,value] params); // elements are special arguments for the field/value
 	
 data Param = param(str name, value val);
 
+Param angle(int val) = param("angle", val);
+Param checked(bool val) = param("checked", val);
+Param color(str val) = param("colour", val); // Not gonna use colour. See Attr hue().
+Param colorOptions(list[str] val) = param("colorOptions", val);
+Param colorTitles(list[str] val) = param("colorTitles", val);
+Param columns(int val) = param("columns", val);
 Param check(list[str] val) = param("check", val);
+Param options(lrel[str, str] val) = param("options", val);
+// TODO IMAGES FOR OPTIONS. 
+Param src(str val) = param("src", val);
+Param width(int val) = param("width", val);
+Param height(int val) = param("height", val);
+Param alt(str val) = param("alt", val);
+Param text(str val) = param("text", val);
+Param \value(int val) = param("value", val);
+Param date(datetime val) = param("date", val.justDate);
+Param text(str val) = param("text", val);
+Param spellcheck(bool val) = param("spellcheck", val);
+
+data Option = item(str name, str text)
+			| image(str name, str src, int width, int height, str alt = "");
+data Nothing = none(); 
 
 // Attributes for the configuration of the internal omnibox.
+// Toolbox def
 Attr \type(str val) = attr("type", val);
 Attr disabled(bool val) = attr("disabled", "<( val ? val : "")>");
 Attr expanded(bool val) = attr("expanded", "<(!val ? val : "")>");
@@ -74,11 +96,14 @@ Attr custom(str val) = attr("custom", val);
 Attr categoryStyle(str val) = attr("categorystyle", val);
 Attr gap(int val) = attr("gap", "<((val >= 0 && val <= 360) ? val : "")>");
 Attr id(str val) = attr("id", val);
+// Block def
 Attr tooltip(str val) = attr("tooltip", val);
 Attr helpUrl(str val) = attr("helpUrl", val);
 Attr webClass(str val) = attr("web-class", val);
 Attr nextStatement(str val) = attr("nextStatement", val);
 Attr previousStatement(str val) = attr("previousStatement", val);
+Attr output(str val) = attr("output", val);
+Attr inputsInline(bool val) = attr("inputsInline", "<val>");
 
 // compile
 
@@ -125,13 +150,13 @@ Node toolbox2xml(_Element tbox) =
 
 map[str, value] attrs2json(list[str] keys, map[str, str] attrs) = (key:key | key <- keys) o attrs;
 
-list[map[str, value]] args2json(list[_Element] args) = [("type": arg.\type, "name": arg.name) + arg.params | arg <- args] ;
+list[map[str, value]] args2json(list[_Element] args) = [("type": arg.\type) + arg.params | arg <- args] ;
 
 map[str, value] block2json(_Element block) {
 	map[str, value] def = ();
 	int msgCount = 0;
 	
-	def += attrs2json(["type", "colour", "helpUrl", "tooltip", "nextStatement", "previousStatement"], block.attrs);
+	def += attrs2json(["type", "colour", "helpUrl", "tooltip", "nextStatement", "previousStatement", "output", "inputsInline"], block.attrs);
 	
 	for( msg <- block.messages) {
 		def += ("message<msgCount>": "<msg.msg>");
@@ -226,7 +251,82 @@ void shadow(str name, value vals...){
 
 void message(str msg, value vals...) = addToParent(addChildren(_message(msg), vals));
 
-void argument(str name, str \type, value vals...) = addToParent(_argument(\type, name, getParams(vals)));
+void argument(str name, str \type, value vals...) = addToParent(_argument(\type, ("name": name) + getParams(vals)));
+
+void inputValue(str name, list[str] check = []) = addToParent(_argument("input_value", ("name" : name) + (check == [] ? () : ("check": check))));
+void inputStatement(str name, list[str] check = []) = addToParent(_argument("input_statement", ("name": name, "check": check)));
+void inputDummy() = addToParent(_argument("input_dummy", ()));
+
+void fieldInput(str name, str text = "", bool spellcheck = false)
+	= addToParent(_argument("field_input", ("name": name, "text": text, "spellcheck": spellcheck)));
+	
+void fieldDropdown(str name, list[Option] options){
+	list[list[value, str]] opts = [];
+	for(opt <-options){
+		switch(opt){
+			case item(str name, str text):
+				opts += [text, name];
+			case image(str name, str src, int width, int height):
+				opts += [("src": src, "width": width, "height": height, "alt": opt.alt), name];
+		};
+	}; 
+	addToParent(_argument("field_dropdown", ("name": name, "options": opts)));
+}
+
+void fieldCheckbox(str name, bool checked = false)
+	= addToParent(_argument("field_checkbox", ("name": name, "checked": checked)));
+	
+void fieldColor(str name, str color = "", list[str] colorOptions = [], list[str] colorTitles = [], int columns = 0)
+	= addToParent(_argument("field_colour", ("name": name, "colour": color, "colourOptions": colorOptions, "colourTitles": colorTitles, "columns": columns)));
+	
+void fieldNumber(str name, num val = 0, value min = none(), value max = none(), value precision = none()) {
+	map[str, value] params = ("name": name, "value": val);
+	
+	if(num val := min){
+		params += ("min": val);
+	}	
+	
+	if(num val := max){
+		params += ("max": val);
+	}
+	
+	if(num val := precision){
+		params += ("precision": val);
+	}
+	
+	addToParent(_argument("field_number", params));
+}
+
+void fieldAngle(str name, num angle = 0)
+	= addToParent(_argument("field_angle", ("name": name, "angle": angle)));
+	
+void fieldVariable(str name, str variable = "", list[str] variableTypes = [], str defaultType = "") {
+	map[str, value] params = ("name": name);
+	
+	if(variable != "") {
+		params += ("variable": variable);
+	}
+	if(variableTypes != []) {
+		params += ("variableTypes": variableTypes);
+	}
+	if(defaultType != "") {
+		params += ("defaultType": defaultType);
+	}
+	
+	addToParent(_argument("field_variable", params));
+}
+
+void fieldDate(str name, value date = none())
+	= addToParent(_argument("field_date", ("name": name) + ("date": d.justDate | datetime d := date)));
+
+void fieldLabel(str text)
+	= addToParent(_argument("field_label", ("text": text)));
+	
+void fieldLabelSerializable(str name, str text)
+	= addToParent(_argument("field_label_serializable", ("name": name, "text": text)));
+	
+void fieldImage(str src, int width, int height, str alt = "")
+	= addToParent(_argument("field_image", ("src": src, "width": width, "height": height, "alt": alt)));
 
 // the closure for a value.
 void \value(str name, value vals...) = addToParent(addChildren(_value(("name": name)), vals));

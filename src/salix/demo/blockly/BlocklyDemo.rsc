@@ -73,48 +73,94 @@ void view(Model model) {
       div(class("col-md-8"), () {
         h4("Edit");
         blockly("myBlockly", onChange(Msg::blocklyChange), () {
-        	category("Control", () {
+        	category("Control", hue(90), () {
         		block(
         			"if", 
         			\type("controls_if"),
-        			hue(100), 
+        			hue(90), 
         			nextStatement(""),
         			previousStatement(""),
 					() {
 						message("if %1 then", () {
-							argument("CONDITION", "input_value");
+							inputValue("CONDITION", check = ["Boolean"]);
 						});
 						message("%1", () {
-							argument("THEN", "input_statement");
+							inputStatement("THEN");
         				});
         			}
         		);
         		block(
-        			"switch",
-        			\type("controls_switch"),
-        			hue(170),
-        			nextStatement(""),
-        			previousStatement(""),
+        			"omni-block",
+        			\type("oni_block"),
+        			hue(90),
         			() {
-        				message("switch over %1 %2", () {
-        					argument("VALUE", "input_value");
-        					argument("SWITCH", "input_statement", check(["Switch"]));
+        				message("input value: %1", (){inputValue("VALUE");}); 
+        				message("input statement: %1", (){inputStatement("STATEMENT");}); 
+        				message("input dummy: %1", (){inputDummy();}); 
+        				message("field input: %1", (){fieldInput("INPUT", text="cake", spellcheck=true);}); 
+        				//message("field dropdown: %1", (){fieldDropdown("DROP", [item("cale","cale")]);}); // BROKEN 
+        				message("field checkbox: %1", (){fieldCheckbox("CHECKBOX", checked=true);}); 
+        				message("field color: %1", (){fieldColor("COLOR", color="#ff4040", colorOptions=["#ff4040", "#4040ff"], colorTitles=["dark pink", "dark blue"],columns=0);}); 
+        				message("field number: %1", (){fieldNumber("NUMBER", val=7.0, min=0, max=28, precision=2);});
+        				message("field angle: %1", (){fieldAngle("ANGLE", angle=90);});
+        				message("field variable: %1", (){fieldVariable("VARIABLE");});
+        				//message("date input: %1", (){fieldDate("DATE");});// BROKEN; Not part of blockly anymore?!
+        				message("field label: %1", (){fieldLabel("Label example");});
+        				message("field serializable label: %1", (){fieldLabelSerializable("Label", "sLabel example");});
+        				message("field image: %1", (){fieldImage("https://developers.google.com/blockly/images/logos/logo_built_on.png", 496, 179, alt="built on blockly");});
+        			}
+				);
+        	});
+        	category("Logic", hue(180), () {
+        		block(
+        			"equals",
+        			\type("logic_equals"),
+        			hue(180),
+        			output("Boolean"),
+        			inputsInline(true),
+        			() {
+        				message("%1 == %2", () {
+        					inputValue("A");
+        					inputValue("B");
         				});
         			}
         		);
         		block(
-        			"case",
-        			\type("controls_case"),
-        			hue(170),
-        			nextStatement("Switch"),
-        			previousStatement("Switch"),
+        			"true",
+        			\type("logic_true"),
+        			hue(180),
+        			output("Boolean"),
         			() {
-        				message("case %1: %2", () {
-        					argument("VALUE", "input_value");
-        					argument("SWITCH", "input_statement");
+        				message("true");
+        			}
+        		);
+        	});
+        	category("Math", hue(270), () {
+        		block(
+        			"add",
+        			\type("math_addition"),
+        			hue(270),
+        			output("Number"),
+        			inputsInline(true),
+        			() {
+        				message("%1 + %2", () {
+        					inputValue("A", check=["Number"]);
+        					inputValue("B", check=["Number"]);
         				});
         			}
         		);
+        		block(
+        			"Number",
+        			\type("math_number"),
+        			hue(270),
+        			output("Number"),
+        			() {
+        				message("%1", (){
+        					fieldNumber("VALUE");
+        				});
+        			}
+        		);
+        		
         	});
         });
       });
