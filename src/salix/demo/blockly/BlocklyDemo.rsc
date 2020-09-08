@@ -98,7 +98,7 @@ void view(Model model) {
         				message("input statement: %1", (){inputStatement("STATEMENT");}); 
         				message("input dummy: %1", (){inputDummy();}); 
         				message("field input: %1", (){fieldInput("INPUT", text="cake", spellcheck=true);}); 
-        				//message("field dropdown: %1", (){fieldDropdown("DROP", [item("cale","cale")]);}); // BROKEN 
+        				message("field dropdown: %1", (){fieldDropdown("DROP", [item("cale","cale")]);}); // BROKEN 
         				message("field checkbox: %1", (){fieldCheckbox("CHECKBOX", checked=true);}); 
         				message("field color: %1", (){fieldColor("COLOR", color="#ff4040", colorOptions=["#ff4040", "#4040ff"], colorTitles=["dark pink", "dark blue"],columns=0);}); 
         				message("field number: %1", (){fieldNumber("NUMBER", val=7.0, min=0, max=28, precision=2);});

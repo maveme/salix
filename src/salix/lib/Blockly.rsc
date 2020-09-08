@@ -261,15 +261,16 @@ void fieldInput(str name, str text = "", bool spellcheck = false)
 	= addToParent(_argument("field_input", ("name": name, "text": text, "spellcheck": spellcheck)));
 	
 void fieldDropdown(str name, list[Option] options){
-	list[list[value, str]] opts = [];
+	list[lrel[value, str]] opts = [];
 	for(opt <-options){
 		switch(opt){
 			case item(str name, str text):
-				opts += [text, name];
+				opts += <text, name>;
 			case image(str name, str src, int width, int height):
-				opts += [("src": src, "width": width, "height": height, "alt": opt.alt), name];
+				opts += <("src": src, "width": width, "height": height, "alt": opt.alt), name>;
 		};
-	}; 
+	};
+	println(name);
 	addToParent(_argument("field_dropdown", ("name": name, "options": opts)));
 }
 
